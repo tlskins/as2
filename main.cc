@@ -1,39 +1,38 @@
 /**
- * Semaphore example, written in C++ May 4, 2014
+ * Producer-Comsumer example, written in C++ May 4, 2014
  * Compiled on OSX 10.9, using:
- * g++ -std=c++11 semaphore.cpp
+ * g++ -std=c++11 producer_consumer.cpp
  **/
 
 #include <iostream>
-#include <cstdlib>
-// #include <thread>
 #include <pthread.h>
 #include <mutex>
 #include <condition_variable>
 
 using namespace std;
 
-mutex mtx;             // mutex for critical section
-condition_variable cv; // condition variable for critical section
+mutex mtx;
+condition_variable cv;
 bool ready = false;         // Tell threads to run
-int current = 0;            // current count
+int meal = 0;
 
-/* Prints the thread id / max number of threads */
-// void print_num(int num, int max) {
-void *print_num(void *threadid) {
+/* Consumer */
+void *waiter(void *threadid){
   unique_lock<mutex> lck(mtx);
-  while( (long)threadid != current || !ready){
-    // cout << "before wait for thread " << (long)threadid << endl;
-    cv.wait(lck);
-  }
-  current++;
-  cout << "Thread id: ";
-  cout << (long)threadid;
-  cout << " current count is: ";
-  cout << current << endl;
+  while(meal == 0 || !ready) cv.wait(lck);
+  cout << "Order: ";
+  cout << (long)threadid + 1 << " being taken care of with ";
+  cout << meal - 1 << " meals also ready." << endl;
+  meal--;
+}
 
-  /* Notify next threads to check if it is their turn */
-  cv.notify_all();
+/* Producer */
+void *makeMeal(void *threadid){
+  unique_lock<mutex> lck(mtx);
+  while(!ready) cv.wait(lck);
+  cout << "Make meal " << meal + 1 << endl;
+  meal++;
+  cv.notify_one();
 }
 
 /* Changes ready to true, and begins the threads printing */
@@ -44,35 +43,27 @@ void run(){
   cv.notify_all();
 }
 
-int main (){
-  int rc;
-  int threadnum = 15;
-  // thread threads[15];
-  pthread_t threads[threadnum];
+int main(){
+  int rc1, rc2;
+  pthread_t chefs[10];
+  pthread_t waiters[10];
 
-  /* spawn threadnum threads */
-  for (long id = 0; id < threadnum; id++) {
-    cout << "main() : creating thread, " << id << endl;
-    // threads[id] = thread(print_num, id, threadnum);
-    rc = pthread_create(&threads[id], NULL, print_num, (void *)id);
+  /* Initialize customers and chefs */
+  for (long order = 0; order < 10; order++){
+    cout << "main() : creating threads for order, " << order << endl;
+    rc1 = pthread_create(&chefs[order], NULL, makeMeal, (void *)order);
+    rc2 = pthread_create(&waiters[order], NULL, waiter, (void *)order);
 
-    if (rc) {
-       cout << "Error:unable to create thread," << rc << endl;
+    if (rc1) {
+       cout << "Error:unable to create producer thread, " << rc1 << endl;
+       exit(-1);
+    }
+    if (rc2) {
+       cout << "Error:unable to create consumer thread, " << rc2 << endl;
        exit(-1);
     }
   }
-
-  cout << "\nRunning " << threadnum;
-  cout << " in parallel: \n" << endl;
-
-  run(); // Allows threads to run
-  //
-  // /* Merge all threads to the main thread */
-  // for(int id = 0; id < threadnum; id++)
-  //   threads[id].join();
-
-  cout << "\nCompleted semaphore example!\n";
-  cout << endl;
+  run();
 
   pthread_exit(NULL);
 }
