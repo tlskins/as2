@@ -3,7 +3,6 @@ LIBS =
 CC = g++
 CFLAGS = -g -Wall
 OBJDIR = obj
-INCDIR = include
 .PHONY: default all clean
 
 default: $(TARGET)
@@ -11,7 +10,7 @@ all: default
 
 OBJECTS = $(OBJDIR)/main.o
 
-$(OBJDIR)/%.o: %.cpp
+$(OBJDIR)/%.o: %.cc
 	mkdir -p $(OBJDIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
