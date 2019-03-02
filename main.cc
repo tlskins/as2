@@ -44,22 +44,22 @@ void run(){
 }
 
 int main(){
-  int rc1, rc2;
+  int rc;
   pthread_t chefs[10];
   pthread_t waiters[10];
 
   /* Initialize customers and chefs */
   for (long order = 0; order < 10; order++){
     cout << "main() : creating threads for order, " << order << endl;
-    rc1 = pthread_create(&chefs[order], NULL, makeMeal, (void *)order);
-    rc2 = pthread_create(&waiters[order], NULL, waiter, (void *)order);
-
-    if (rc1) {
-       cout << "Error:unable to create producer thread, " << rc1 << endl;
+    rc = pthread_create(&chefs[order], NULL, makeMeal, (void *)order);
+    if (rc) {
+       cout << "Error:unable to create producer thread, " << rc << endl;
        exit(-1);
     }
-    if (rc2) {
-       cout << "Error:unable to create consumer thread, " << rc2 << endl;
+
+    rc = pthread_create(&waiters[order], NULL, waiter, (void *)order);
+    if (rc) {
+       cout << "Error:unable to create consumer thread, " << rc << endl;
        exit(-1);
     }
   }
