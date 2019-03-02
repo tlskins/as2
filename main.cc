@@ -3,67 +3,75 @@
  * Compiled on OSX 10.9, using:
  * g++ -std=c++11 producer_consumer.cpp
  **/
-
+#include <stdio.h>
+#include <stdlib.h>
 #include <iostream>
 #include <pthread.h>
-#include <mutex>
-#include <condition_variable>
+#include <unistd.h>
 
 using namespace std;
 
-mutex mtx;
-condition_variable cv;
-bool ready = false;         // Tell threads to run
+pthread_mutex_t mtx = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t cv = PTHREAD_COND_INITIALIZER;
 int meal = 0;
+int CHEF_COUNT = 10;
+int WAITER_COUNT = 2;
 
 /* Consumer */
 void *waiter(void *threadid){
-  unique_lock<mutex> lck(mtx);
-  while(meal == 0 || !ready) cv.wait(lck);
-  cout << "Order: ";
-  cout << (long)threadid + 1 << " being taken care of with ";
-  cout << meal - 1 << " meals also ready." << endl;
-  meal--;
+  sleep(1);
+  while(meal > 0) {
+    pthread_mutex_lock( &mtx );
+    printf("Waiter %ld processing meal... %d meals still pending\n",(long)threadid + 1, meal-1);
+    meal--;
+    pthread_cond_signal( &cv );
+    pthread_mutex_unlock( &mtx );
+  }
+  printf("Waiter %ld finished!\n",(long)threadid + 1);
 }
 
 /* Producer */
 void *makeMeal(void *threadid){
-  unique_lock<mutex> lck(mtx);
-  while(!ready) cv.wait(lck);
-  cout << "Make meal " << meal + 1 << endl;
+  pthread_mutex_lock( &mtx );
+  pthread_cond_wait( &cv, &mtx );
+  printf("Make meal %d\n", meal + 1);
   meal++;
-  cv.notify_one();
-}
-
-/* Changes ready to true, and begins the threads printing */
-void run(){
-  cout << "run called" << endl;
-  unique_lock<mutex> lck(mtx);
-  ready = true;
-  cv.notify_all();
+  pthread_cond_signal( &cv );
+  pthread_mutex_unlock( &mtx );
 }
 
 int main(){
   int rc;
-  pthread_t chefs[10];
-  pthread_t waiters[10];
+  pthread_t chefs[CHEF_COUNT];
+  pthread_t waiters[WAITER_COUNT];
 
-  /* Initialize customers and chefs */
-  for (long order = 0; order < 10; order++){
-    cout << "main() : creating threads for order, " << order << endl;
+  /* Initialize producers */
+  for (long order = 0; order < CHEF_COUNT; order++){
+    printf("main() : creating producer thread for order, %ld\n", order);
     rc = pthread_create(&chefs[order], NULL, makeMeal, (void *)order);
     if (rc) {
-       cout << "Error:unable to create producer thread, " << rc << endl;
-       exit(-1);
-    }
-
-    rc = pthread_create(&waiters[order], NULL, waiter, (void *)order);
-    if (rc) {
-       cout << "Error:unable to create consumer thread, " << rc << endl;
-       exit(-1);
+      printf("Error:unable to create producer thread, %d\n", rc);
+      exit(-1);
     }
   }
-  run();
+
+  /* Initialize consumers */
+  for (long order = 0; order < WAITER_COUNT; order++){
+    printf("main() : creating consumer thread for order, %ld\n", order);
+    rc = pthread_create(&waiters[order], NULL, waiter, (void *)order);
+    if (rc) {
+      printf("Error:unable to create consumer thread, %d\n", rc);
+      exit(-1);
+    }
+  }
+
+  pthread_cond_broadcast(&cv);
+  for (long order = 0; order < CHEF_COUNT; order++){
+    pthread_join( chefs[order], NULL);
+  }
+  for (long order = 0; order < WAITER_COUNT; order++){
+    pthread_join( waiters[order], NULL);
+  }
 
   pthread_exit(NULL);
 }
