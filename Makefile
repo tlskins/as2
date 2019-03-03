@@ -1,4 +1,4 @@
-TARGET = prog
+TARGET = prog buffer_queue
 LIBS =
 CC = g++
 CFLAGS = -g -Wall
@@ -8,7 +8,7 @@ OBJDIR = obj
 default: $(TARGET)
 all: default
 
-OBJECTS = $(OBJDIR)/main.o
+OBJECTS = $(OBJDIR)/main.o $(OBJDIR)/buffer_queue.o
 
 $(OBJDIR)/%.o: %.cc
 	mkdir -p $(OBJDIR)
