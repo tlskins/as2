@@ -39,6 +39,7 @@ void *waiter(void *threadid){
       sleep(sleep_for);
     }
   } while(running);
+
   printf("Waiter %ld) done running\n",(long)threadid + 1);
   pthread_cond_signal( &cv );
   pthread_mutex_unlock( &mtx );
@@ -67,9 +68,10 @@ void *makeMeal(void *threadid){
       sleep(sleep_for);
     }
   } while(running);
+
   printf("Chef %ld) done running\n",(long)threadid + 1);
+  // need to signal other producers waiting for signals
   pthread_cond_signal( &cv );
-  pthread_mutex_unlock( &mtx );
 }
 
 int main(){
