@@ -1,13 +1,9 @@
-/**
- * Producer-Comsumer example, written in C++ May 4, 2014
- * Compiled on OSX 10.9, using:
- * g++ -std=c++11 producer_consumer.cpp
- **/
 #include <stdio.h>
 #include <stdlib.h>
 #include <iostream>
 #include <pthread.h>
 #include <unistd.h>
+// #include "buffer_queue.h"
 
 using namespace std;
 
@@ -18,6 +14,7 @@ int CHEF_COUNT = 10;
 int WAITER_COUNT = 2;
 int MAX_MEALS = 5;
 bool running = true;
+// BufferQueue queue(MAX_MEALS);
 
 /* Consumer */
 void *waiter(void *threadid){

@@ -5,25 +5,16 @@ typedef struct {
 	int*		value;
 } buffer_item;
 
-// typedef struct {
-//   buffer_item
-// } buffer_queue;
-//
-// // command information
-// typedef struct {
-// 	char*		cmd;
-// 	S_List*		args;
-// 	char*		fOut;
-// 	char*		fIn;
-// 	int			wait;
-// 	int			hasPipe;
-// 	int			pipeFd[2];
-// } S_Cmd;
-//
-// // all commands linked list
-// typedef struct _S_CmdList{
-// 	S_Cmd*		c;
-// 	struct _S_CmdList* next;
-// } S_CmdList;
+class BufferQueue {
+  private:
+    buffer_item *cqueue_arr;
+    int front, rear;
+    int MAX;
+  public:
+    BufferQueue(int max);
+    void insert_item(buffer_item item);
+    void remove_item();
+    void display();
+};
 
 #endif
