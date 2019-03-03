@@ -16,26 +16,58 @@ pthread_cond_t cv = PTHREAD_COND_INITIALIZER;
 int meal = 0;
 int CHEF_COUNT = 10;
 int WAITER_COUNT = 2;
+bool running = true;
 
 /* Consumer */
 void *waiter(void *threadid){
-  sleep(1);
-  while(meal > 0) {
+  int sleep_for;
+
+  do {
     pthread_mutex_lock( &mtx );
-    printf("Waiter %ld processing meal... %d meals still pending\n",(long)threadid + 1, meal-1);
-    meal--;
-    pthread_cond_signal( &cv );
-    pthread_mutex_unlock( &mtx );
-  }
-  printf("Waiter %ld finished!\n",(long)threadid + 1);
+
+    if (meal > 0) {
+      printf("Waiter %ld) waiting meal... %d meals still pending\n",(long)threadid + 1, meal-1);
+      meal--;
+      pthread_cond_signal( &cv );
+      pthread_mutex_unlock( &mtx );
+    }
+    else {
+      sleep_for = rand() % 4;
+      printf("Waiter %ld) no meals. sleeping for %d\n",(long)threadid + 1, sleep_for);
+      pthread_cond_signal( &cv );
+      pthread_mutex_unlock( &mtx );
+      sleep(sleep_for);
+    }
+  } while(running);
+  printf("Waiter %ld) done running\n",(long)threadid + 1);
+  pthread_cond_signal( &cv );
+  pthread_mutex_unlock( &mtx );
 }
 
 /* Producer */
 void *makeMeal(void *threadid){
-  pthread_mutex_lock( &mtx );
-  pthread_cond_wait( &cv, &mtx );
-  printf("Make meal %d\n", meal + 1);
-  meal++;
+  int make_meal;
+  int sleep_for;
+
+  do {
+    pthread_mutex_lock( &mtx );
+    pthread_cond_wait( &cv, &mtx );
+    make_meal = rand() % 2;
+    if (make_meal) {
+      printf("Chef %ld) making meal %d\n",(long)threadid + 1, meal + 1);
+      meal++;
+      pthread_cond_signal( &cv );
+      pthread_mutex_unlock( &mtx );
+    }
+    else {
+      sleep_for = rand() % 4;
+      printf("Chef %ld) too sleepy... sleeping for %d\n",(long)threadid + 1, sleep_for);
+      pthread_cond_signal( &cv );
+      pthread_mutex_unlock( &mtx );
+      sleep(sleep_for);
+    }
+  } while(running);
+  printf("Chef %ld) done running\n",(long)threadid + 1);
   pthread_cond_signal( &cv );
   pthread_mutex_unlock( &mtx );
 }
@@ -66,12 +98,17 @@ int main(){
   }
 
   pthread_cond_broadcast(&cv);
-  for (long order = 0; order < CHEF_COUNT; order++){
-    pthread_join( chefs[order], NULL);
-  }
-  for (long order = 0; order < WAITER_COUNT; order++){
-    pthread_join( waiters[order], NULL);
-  }
+  // for (long order = 0; order < CHEF_COUNT; order++){
+  //   pthread_join( chefs[order], NULL);
+  // }
+  // for (long order = 0; order < WAITER_COUNT; order++){
+  //   pthread_join( waiters[order], NULL);
+  // }
 
+  printf("main sleeping...");
+  sleep(2);
+  printf("main DONE sleeping...");
+
+  running = false;
   pthread_exit(NULL);
 }
