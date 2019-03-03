@@ -52,7 +52,7 @@ void *makeMeal(void *threadid){
 
   do {
     pthread_mutex_lock( &mtx );
-    pthread_cond_wait( &cv, &mtx );
+    // pthread_cond_wait( &cv, &mtx );
     make_meal = rand() % 2;
     if (make_meal) {
       printf("Chef %ld) making meal %d\n",(long)threadid + 1, meal + 1);
@@ -71,7 +71,7 @@ void *makeMeal(void *threadid){
 
   printf("Chef %ld) done running\n",(long)threadid + 1);
   // need to signal other producers waiting for signals
-  pthread_cond_signal( &cv );
+  // pthread_cond_signal( &cv );
 }
 
 int main(){
