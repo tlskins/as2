@@ -41,6 +41,7 @@ void *waiter(void *threadid){
   printf("Waiter %ld) done running\n",(long)threadid + 1);
   pthread_cond_signal( &cv );
   pthread_mutex_unlock( &mtx );
+  return NULL;
 }
 
 /* Producer */
@@ -66,6 +67,7 @@ void *makeMeal(void *threadid){
   } while(running);
 
   printf("Chef %ld) done running\n",(long)threadid + 1);
+  return NULL;
 }
 
 int main(){
