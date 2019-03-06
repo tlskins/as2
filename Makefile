@@ -1,5 +1,5 @@
 TARGET = prog
-LIBS =
+LIBS = -lpthread
 CC = g++
 CFLAGS = -g -Wall
 OBJDIR = obj
