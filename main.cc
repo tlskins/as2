@@ -23,24 +23,17 @@ void *waiter(void *threadid){
   do {
     pthread_mutex_lock( &mtx );
 
-    if (meal > 0) {
-      printf("Waiter %ld) waiting meal, %d meals still pending\n",(long)threadid + 1, meal-1);
-      meal--;
-      pthread_cond_signal( &cv );
-      pthread_mutex_unlock( &mtx );
-    }
-    else {
-      sleep_for = rand() % 3 + 1;
-      printf("Waiter %ld) no meals. sleeping for %d\n",(long)threadid + 1, sleep_for);
-      pthread_cond_signal( &cv );
-      pthread_mutex_unlock( &mtx );
-      sleep(sleep_for);
-    }
+    sleep_for = rand() % 3 + 1;
+    printf("Waiter %ld) sleeping for %d\n",(long)threadid + 1, sleep_for);
+    sleep(sleep_for);
+    while (meal == 0 && running) pthread_cond_wait( &cv, &mtx );
+    printf("Waiter %ld) waiting meal, %d meals still pending\n",(long)threadid + 1, meal-1);
+    meal--;
+    pthread_cond_signal( &cv );
+    pthread_mutex_unlock( &mtx );
   } while(running);
 
   printf("Waiter %ld) done running\n",(long)threadid + 1);
-  pthread_cond_signal( &cv );
-  pthread_mutex_unlock( &mtx );
   return NULL;
 }
 
@@ -49,9 +42,12 @@ void *makeMeal(void *threadid){
   int make_meal, sleep_for;
 
   do {
+    printf("Chef %ld) waiting mutex...\n",(long)threadid + 1);
     pthread_mutex_lock( &mtx );
     make_meal = rand() % 2;
-    if (make_meal && meal < MAX_MEALS) {
+    if (make_meal) {
+      printf("Chef %ld) pthread_cond_wait...\n",(long)threadid + 1);
+      while (meal == MAX_MEALS && running) pthread_cond_wait( &cv, &mtx );
       printf("Chef %ld) making meal %d\n",(long)threadid + 1, meal + 1);
       meal++;
       pthread_cond_signal( &cv );
@@ -59,7 +55,7 @@ void *makeMeal(void *threadid){
     }
     else {
       sleep_for = rand() % 3 + 1;
-      printf("Chef %ld) %s, sleeping for %d\n",(long)threadid + 1, meal < MAX_MEALS ? "too sleepy" : "buffer full", sleep_for);
+      printf("Chef %ld) %s, sleeping for %d\n",(long)threadid + 1, "too sleepy", sleep_for);
       pthread_cond_signal( &cv );
       pthread_mutex_unlock( &mtx );
       sleep(sleep_for);
@@ -94,8 +90,6 @@ int main(){
       exit(-1);
     }
   }
-
-  pthread_cond_broadcast(&cv);
 
   printf("main() sleeping...\n");
   sleep(2);
