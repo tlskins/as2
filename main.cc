@@ -9,9 +9,10 @@ using namespace std;
 
 pthread_mutex_t mtx = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t cv = PTHREAD_COND_INITIALIZER;
-int PRODUCER_COUNT = 10;
-int CONSUMER_COUNT = 2;
 int MAX_MEALS = 5;
+int PRODUCER_COUNT;
+int CONSUMER_COUNT;
+int MAIN_SLEEP_FOR;
 bool running = true;
 BufferQueue queue(MAX_MEALS);
 
@@ -78,6 +79,18 @@ int main(){
   pthread_t producers[PRODUCER_COUNT];
   pthread_t consumers[CONSUMER_COUNT];
 
+  printf("Number of seconds to sleep before terminating> ");
+  fflush(stdout);
+  cin >> MAIN_SLEEP_FOR;
+
+  printf("Number of producer threads> ");
+  fflush(stdout);
+  cin >> PRODUCER_COUNT;
+
+  printf("Number of consumer threads> ");
+  fflush(stdout);
+  cin >> CONSUMER_COUNT;
+
   /* Initialize producers */
   for (long order = 0; order < PRODUCER_COUNT; order++){
     printf("main() : creating producer thread with id: %ld\n", order);
@@ -99,7 +112,7 @@ int main(){
   }
 
   printf("main() sleeping...\n");
-  sleep(2);
+  sleep(MAIN_SLEEP_FOR);
   printf("main() DONE sleeping...\n");
 
   running = false;
