@@ -26,9 +26,13 @@ void *consumer(void *threadid){
     printf("Consumer %ld) sleeping for %d\n",(long)threadid + 1, sleep_for);
     sleep(sleep_for);
     while (queue.is_empty() && running) pthread_cond_wait( &cv, &mtx );
-    queue.remove_item();
-    printf("Consumer %ld) finished consuming. ",(long)threadid + 1);
-    queue.display();
+    // the condition wait can release when program is done running but queue
+    // is empty, in this case we want to check again to avoid underflow
+    if (!queue.is_empty()) {
+      queue.remove_item();
+      printf("Consumer %ld) finished consuming. ",(long)threadid + 1);
+      queue.display();
+    }
     pthread_cond_signal( &cv );
     pthread_mutex_unlock( &mtx );
   } while(running);
@@ -46,15 +50,19 @@ void *producer(void *threadid){
     produce = rand() % 2;
     if (produce) {
       while (queue.is_full() && running) pthread_cond_wait( &cv, &mtx );
-      buffer_item item = { rand() % RAND_MAX + 1 };
-      queue.insert_item(item);
-      printf("Producer %ld) produced %d\n",(long)threadid + 1, item.getValue());
+      // the condition wait can release when program is done running but queue
+      // is full, in this case we want to check again to avoid overflow
+      if (!queue.is_full()) {
+        buffer_item item = { rand() % RAND_MAX + 1 };
+        queue.insert_item(item);
+        printf("Producer %ld) produced %d\n",(long)threadid + 1, item.getValue());
+      }
       pthread_cond_signal( &cv );
       pthread_mutex_unlock( &mtx );
     }
     else {
       sleep_for = rand() % 3 + 1;
-      printf("Producer %ld) %s, sleeping for %d\n",(long)threadid + 1, "too sleepy", sleep_for);
+      printf("Producer %ld) sleeping for %d\n",(long)threadid + 1, sleep_for);
       pthread_cond_signal( &cv );
       pthread_mutex_unlock( &mtx );
       sleep(sleep_for);
@@ -72,7 +80,7 @@ int main(){
 
   /* Initialize producers */
   for (long order = 0; order < PRODUCER_COUNT; order++){
-    printf("main() : creating producer thread for order, %ld\n", order);
+    printf("main() : creating producer thread with id: %ld\n", order);
     rc = pthread_create(&producers[order], NULL, producer, (void *)order);
     if (rc) {
       printf("Error:unable to create producer thread, %d\n", rc);
@@ -82,7 +90,7 @@ int main(){
 
   /* Initialize consumers */
   for (long order = 0; order < CONSUMER_COUNT; order++){
-    printf("main() : creating consumer thread for order, %ld\n", order);
+    printf("main() : creating consumer thread with id: %ld\n", order);
     rc = pthread_create(&consumers[order], NULL, consumer, (void *)order);
     if (rc) {
       printf("Error:unable to create consumer thread, %d\n", rc);
