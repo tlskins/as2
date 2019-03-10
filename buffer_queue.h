@@ -2,7 +2,10 @@
 #define BUFFER_QUEUE_H
 
 typedef struct {
-	int*		value;
+	int		value;
+	int getValue() {
+		return value;
+	}
 } buffer_item;
 
 class BufferQueue {
@@ -14,6 +17,8 @@ class BufferQueue {
     BufferQueue(int max);
     void insert_item(buffer_item item);
     void remove_item();
+		bool is_empty();
+		bool is_full();
     void display();
 };
 

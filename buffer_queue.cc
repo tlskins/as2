@@ -47,13 +47,24 @@ void BufferQueue::remove_item(){
   }
 }
 
+
+bool BufferQueue::is_empty(){
+  return front == -1;
+}
+
+
+bool BufferQueue::is_full(){
+  return (front == 0 && rear == MAX-1) || (front == rear+1);
+}
+
+
 void BufferQueue::display() {
   int front_pos = front, rear_pos = rear;
   if (front == -1) {
     cout<<"Queue is empty\n";
     return;
   }
-  cout<<"Queue elements :\n";
+  cout<<"Queue elements: ";
   if (front_pos <= rear_pos) {
     while (front_pos <= rear_pos) {
       cout<<cqueue_arr[front_pos].value<<"  ";

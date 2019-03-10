@@ -3,78 +3,77 @@
 #include <iostream>
 #include <pthread.h>
 #include <unistd.h>
-// #include "buffer_queue.h"
+#include "buffer_queue.h"
 
 using namespace std;
 
 pthread_mutex_t mtx = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t cv = PTHREAD_COND_INITIALIZER;
-int meal = 0;
-int CHEF_COUNT = 10;
-int WAITER_COUNT = 2;
+int PRODUCER_COUNT = 10;
+int CONSUMER_COUNT = 2;
 int MAX_MEALS = 5;
 bool running = true;
-// BufferQueue queue(MAX_MEALS);
+BufferQueue queue(MAX_MEALS);
 
 /* Consumer */
-void *waiter(void *threadid){
+void *consumer(void *threadid){
   int sleep_for;
 
   do {
     pthread_mutex_lock( &mtx );
 
     sleep_for = rand() % 3 + 1;
-    printf("Waiter %ld) sleeping for %d\n",(long)threadid + 1, sleep_for);
+    printf("Consumer %ld) sleeping for %d\n",(long)threadid + 1, sleep_for);
     sleep(sleep_for);
-    while (meal == 0 && running) pthread_cond_wait( &cv, &mtx );
-    printf("Waiter %ld) waiting meal, %d meals still pending\n",(long)threadid + 1, meal-1);
-    meal--;
+    while (queue.is_empty() && running) pthread_cond_wait( &cv, &mtx );
+    queue.remove_item();
+    printf("Consumer %ld) finished consuming. ",(long)threadid + 1);
+    queue.display();
     pthread_cond_signal( &cv );
     pthread_mutex_unlock( &mtx );
   } while(running);
 
-  printf("Waiter %ld) done running\n",(long)threadid + 1);
+  printf("Consumer %ld) done running\n",(long)threadid + 1);
   return NULL;
 }
 
 /* Producer */
-void *makeMeal(void *threadid){
-  int make_meal, sleep_for;
+void *producer(void *threadid){
+  int produce, sleep_for;
 
   do {
-    printf("Chef %ld) waiting mutex...\n",(long)threadid + 1);
     pthread_mutex_lock( &mtx );
-    make_meal = rand() % 2;
-    if (make_meal) {
-      printf("Chef %ld) pthread_cond_wait...\n",(long)threadid + 1);
-      while (meal == MAX_MEALS && running) pthread_cond_wait( &cv, &mtx );
-      printf("Chef %ld) making meal %d\n",(long)threadid + 1, meal + 1);
-      meal++;
+    produce = rand() % 2;
+    if (produce) {
+      while (queue.is_full() && running) pthread_cond_wait( &cv, &mtx );
+      buffer_item item = { rand() % RAND_MAX + 1 };
+      queue.insert_item(item);
+      printf("Producer %ld) produced %d\n",(long)threadid + 1, item.getValue());
       pthread_cond_signal( &cv );
       pthread_mutex_unlock( &mtx );
     }
     else {
       sleep_for = rand() % 3 + 1;
-      printf("Chef %ld) %s, sleeping for %d\n",(long)threadid + 1, "too sleepy", sleep_for);
+      printf("Producer %ld) %s, sleeping for %d\n",(long)threadid + 1, "too sleepy", sleep_for);
       pthread_cond_signal( &cv );
       pthread_mutex_unlock( &mtx );
       sleep(sleep_for);
     }
   } while(running);
 
-  printf("Chef %ld) done running\n",(long)threadid + 1);
+  printf("Producer %ld) done running\n",(long)threadid + 1);
   return NULL;
 }
 
 int main(){
   int rc;
-  pthread_t chefs[CHEF_COUNT];
-  pthread_t waiters[WAITER_COUNT];
+  pthread_t producers[PRODUCER_COUNT];
+  pthread_t consumers[CONSUMER_COUNT];
 
   /* Initialize producers */
-  for (long order = 0; order < CHEF_COUNT; order++){
+  for (long order = 0; order < PRODUCER_COUNT; order++){
     printf("main() : creating producer thread for order, %ld\n", order);
-    rc = pthread_create(&chefs[order], NULL, makeMeal, (void *)order);
+    rc = pthread_create(&producers[order], NULL, producer, (void *)order);
     if (rc) {
       printf("Error:unable to create producer thread, %d\n", rc);
       exit(-1);
@@ -82,9 +81,9 @@ int main(){
   }
 
   /* Initialize consumers */
-  for (long order = 0; order < WAITER_COUNT; order++){
+  for (long order = 0; order < CONSUMER_COUNT; order++){
     printf("main() : creating consumer thread for order, %ld\n", order);
-    rc = pthread_create(&waiters[order], NULL, waiter, (void *)order);
+    rc = pthread_create(&consumers[order], NULL, consumer, (void *)order);
     if (rc) {
       printf("Error:unable to create consumer thread, %d\n", rc);
       exit(-1);
