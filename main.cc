@@ -13,7 +13,6 @@ int PRODUCER_COUNT;
 int CONSUMER_COUNT;
 int MAIN_SLEEP_FOR;
 sem_t *empty, *full, *mtx;
-bool running = true;
 BufferQueue queue(MAX_BUFFER_SIZE);
 
 /* Consumer */
@@ -24,9 +23,7 @@ void *consumer(void *threadid){
     sleep_for = rand() % 3 + 1;
     printf("Consumer %ld) sleeping for %d\n",(long)threadid + 1, sleep_for);
     sleep(sleep_for);
-    printf("Consumer %ld) waiting full...\n",(long)threadid + 1);
     sem_wait(full); // wait if full semaphore = 0
-    printf("Consumer %ld) waiting mtx...\n",(long)threadid + 1);
     sem_wait(mtx); // decrement mtx and acquire lock
 
     // consume and dequeue
@@ -36,10 +33,7 @@ void *consumer(void *threadid){
 
     sem_post(mtx); // increment mtx and release lock
     sem_post(empty); // increment empty semaphore
-  } while(running);
-
-  printf("Consumer %ld) done running\n",(long)threadid + 1);
-  return NULL;
+  } while(true);
 }
 
 /* Producer */
@@ -47,11 +41,10 @@ void *producer(void *threadid){
   int produce, sleep_for;
 
   do {
+    // randomly choose to produce or sleep
     produce = rand() % 2;
     if (produce) {
-      printf("Producer %ld) waiting empty...\n",(long)threadid + 1);
       sem_wait(empty); // wait if empty semaphore = 0
-      printf("Producer %ld) waiting mtx...\n",(long)threadid + 1);
       sem_wait(mtx); // decrement mtx and acquire lock
 
       // produce and enqueue
@@ -67,10 +60,7 @@ void *producer(void *threadid){
       printf("Producer %ld) sleeping for %d\n",(long)threadid + 1, sleep_for);
       sleep(sleep_for);
     }
-  } while(running);
-
-  printf("Producer %ld) done running\n",(long)threadid + 1);
-  return NULL;
+  } while(true);
 }
 
 int main(){
@@ -127,7 +117,14 @@ int main(){
   sleep(MAIN_SLEEP_FOR);
   printf("main() DONE sleeping...\n");
 
-  running = false;
+  // kill child threads after main is done sleeping
+  for (long order = 0; order < PRODUCER_COUNT; order++){
+    pthread_kill(producers[order], SIGUSR1);
+  }
+  for (long order = 0; order < CONSUMER_COUNT; order++){
+    pthread_kill(consumers[order], SIGUSR1);
+  }
+
   pthread_exit(NULL);
   return 0;
 }

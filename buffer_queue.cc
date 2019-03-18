@@ -16,12 +16,14 @@ BufferQueue::BufferQueue(int max){
   front = rear = -1;
 }
 
+// Insert item to queue
 void BufferQueue::insert_item(buffer_item item){
   if ((front == 0 && rear == MAX-1) || (front == rear+1)) {
     cout<<"Queue Overflow \n";
     return;
   }
 
+  // update indices to maintain circular queue
   if (front == -1) {
     front = rear = 0;
   }
@@ -32,12 +34,15 @@ void BufferQueue::insert_item(buffer_item item){
   cqueue_arr[rear] = item;
 }
 
+// Remove item from queue
 void BufferQueue::remove_item(){
   if (front == -1) {
     cout<<"Queue Underflow\n";
     return ;
   }
   cout<<"Element deleted from queue is : "<<cqueue_arr[front].value<<endl;
+
+  // update indices to maintain circular queue
   if (front == rear) {
     front = rear = -1;
   }
@@ -47,17 +52,7 @@ void BufferQueue::remove_item(){
   }
 }
 
-
-bool BufferQueue::is_empty(){
-  return front == -1;
-}
-
-
-bool BufferQueue::is_full(){
-  return (front == 0 && rear == MAX-1) || (front == rear+1);
-}
-
-
+// Print queue elements
 void BufferQueue::display() {
   int front_pos = front, rear_pos = rear;
   if (front == -1) {

@@ -1,6 +1,7 @@
 #ifndef BUFFER_QUEUE_H
 #define BUFFER_QUEUE_H
 
+// define buffer_item struct for production / consumption
 typedef struct {
 	int		value;
 	int getValue() {
@@ -17,8 +18,6 @@ class BufferQueue {
     BufferQueue(int max);
     void insert_item(buffer_item item);
     void remove_item();
-		bool is_empty();
-		bool is_full();
     void display();
 };
 
